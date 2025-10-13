@@ -327,8 +327,8 @@ func (m *Module) validateBTCAddressBinding(senderAddr, parsedImuachainAddr, txid
 				Str("parsed_imuachain_addr", parsedImuachainAddr).
 				Str("existing_sender", existingSender).
 				Str("new_sender", senderAddr).
-				Msg("BTC imuachain address already bound to different sender, using existing binding")
-			return existingImuachain, nil
+				Msg("BTC imuachain address already bound to different sender, rejecting transaction")
+			return "", fmt.Errorf("imuachain address %s already bound to BTC address %s", parsedImuachainAddr, existingSender)
 		}
 	}
 
@@ -366,8 +366,8 @@ func (m *Module) validateBTCAddressBinding(senderAddr, parsedImuachainAddr, txid
 			Str("existing_sender", existingTargetBinding.SourceAddr).
 			Str("new_sender", senderAddr).
 			Time("existing_created_at", existingTargetBinding.CreatedAt).
-			Msg("BTC imuachain address already bound to different sender in database, using existing binding")
-		return existingTargetBinding.TargetAddr, nil
+			Msg("BTC imuachain address already bound to different sender in database, rejecting transaction")
+		return "", fmt.Errorf("imuachain address %s already bound to BTC address %s", parsedImuachainAddr, existingTargetBinding.SourceAddr)
 	}
 
 	// No conflicts found, establish new binding
@@ -428,8 +428,8 @@ func (m *Module) validateXRPAddressBinding(senderAddr, parsedImuachainAddr, txHa
 				Str("parsed_imuachain_addr", parsedImuachainAddr).
 				Str("existing_sender", existingSender).
 				Str("new_sender", senderAddr).
-				Msg("XRP imuachain address already bound to different sender, using existing binding")
-			return existingImuachain, nil
+				Msg("XRP imuachain address already bound to different sender, rejecting transaction")
+			return "", fmt.Errorf("imuachain address %s already bound to XRP address %s", parsedImuachainAddr, existingSender)
 		}
 	}
 
@@ -467,8 +467,8 @@ func (m *Module) validateXRPAddressBinding(senderAddr, parsedImuachainAddr, txHa
 			Str("existing_sender", existingTargetBinding.SourceAddr).
 			Str("new_sender", senderAddr).
 			Time("existing_created_at", existingTargetBinding.CreatedAt).
-			Msg("XRP imuachain address already bound to different sender in database, using existing binding")
-		return existingTargetBinding.TargetAddr, nil
+			Msg("XRP imuachain address already bound to different sender in database, rejecting transaction")
+		return "", fmt.Errorf("imuachain address %s already bound to XRP address %s", parsedImuachainAddr, existingTargetBinding.SourceAddr)
 	}
 
 	// No conflicts found, establish new binding
@@ -941,98 +941,233 @@ func (m *Module) getBTCCurrentBlockHeight() (int64, error) {
 func (m *Module) getConfirmedVaultTransactions() ([]types.BTCTx, error) {
 	var allTxs []types.BTCTx
 
-	// Get the last processed transaction ID from database for pagination start point
-	startFromTxID, err := m.database.GetLastProcessedTransaction("BTC")
+	startTxID, startHeight, err := m.database.GetLastProcessedTransaction("BTC")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last processed transaction: %w", err)
 	}
 
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	client := &http.Client{Timeout: 30 * time.Second}
+	ctx := context.Background()
+
+	var startIndex int64
+	if startTxID != "" && startHeight > 0 {
+		idx, err := m.getBTCTransactionIndex(ctx, client, startTxID)
+		if err != nil {
+			log.Warn().Str("txid", startTxID).Err(err).
+				Msg("failed to fetch last processed tx index; scanning full history")
+			startTxID = ""
+			startHeight = 0
+		} else {
+			startIndex = idx
+		}
 	}
 
 	vaultAddress := normalizeAddress(m.Config.BTCVaultAddr)
-	lastSeenTxID := startFromTxID // Use as pagination cursor
+	cursor := startTxID
 	pageCount := 0
+	stop := false
 
 	log.Info().Str("vault_address", vaultAddress).
-		Str("start_from_txid", startFromTxID).
+		Str("start_from_txid", startTxID).
 		Msg("starting BTC vault transaction fetch")
 
-	for {
-		// Build URL - matches TypeScript logic exactly
-		var url string
-		if lastSeenTxID != "" {
-			url = fmt.Sprintf("%s/api/address/%s/txs/chain/%s", m.Config.BTCRPC, vaultAddress, lastSeenTxID)
-		} else {
-			url = fmt.Sprintf("%s/api/address/%s/txs", m.Config.BTCRPC, vaultAddress)
-		}
-
-		// Make HTTP request
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	for !stop {
+		txs, err := m.fetchBTCTxsPage(ctx, client, vaultAddress, cursor)
 		if err != nil {
-			cancel()
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, err
 		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			cancel()
-			return nil, fmt.Errorf("failed to fetch transactions: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			cancel()
-			return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
-		}
-
-		var txs []types.BTCTx
-		err = json.NewDecoder(resp.Body).Decode(&txs)
-		resp.Body.Close()
-		cancel()
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode transactions: %w", err)
-		}
-
-		// Break if no more transactions (matches TypeScript logic)
 		if len(txs) == 0 {
 			break
 		}
 
 		pageCount++
-		confirmedInPage := 0
 
-		// Filter confirmed transactions (matches TypeScript logic)
-		for _, tx := range txs {
-			if tx.Status.Confirmed {
-				// Transaction index is set to 0 as it's not currently used in processing
-				tx.TxIndex = 0
-				allTxs = append(allTxs, tx)
-				confirmedInPage++
-			}
+		newTxs, reachedOlder := m.filterNewBTCTxs(ctx, client, txs, startHeight, startIndex)
+		allTxs = append(allTxs, newTxs...)
+
+		if reachedOlder {
+			break
 		}
 
-		// Log progress for long operations
-		if pageCount%10 == 0 {
-			log.Info().Int("pages_fetched", pageCount).
-				Int("confirmed_in_page", confirmedInPage).
-				Int("total_confirmed", len(allTxs)).
-				Msg("BTC transaction fetch progress")
-		}
-
-		// Set lastSeenTxID for pagination (matches TypeScript logic)
-		lastSeenTxID = txs[len(txs)-1].TxID
+		cursor = txs[len(txs)-1].TxID
 	}
+
+	sortBTCTransactions(allTxs)
 
 	log.Info().Int("total_confirmed_txs", len(allTxs)).
 		Int("pages_fetched", pageCount).
-		Msg("completed BTC vault transaction fetching")
+		Msg("completed BTC deposit processing")
 
 	return allTxs, nil
+}
+
+func (m *Module) fetchBTCTxsPage(ctx context.Context, client *http.Client, vaultAddress, cursor string) ([]types.BTCTx, error) {
+	var url string
+	if cursor != "" {
+		url = fmt.Sprintf("%s/api/address/%s/txs/chain/%s", m.Config.BTCRPC, vaultAddress, cursor)
+	} else {
+		url = fmt.Sprintf("%s/api/address/%s/txs", m.Config.BTCRPC, vaultAddress)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create BTC tx request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to fetch BTC transactions: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		cancel()
+		return nil, fmt.Errorf("BTC tx API returned status %d", resp.StatusCode)
+	}
+
+	var txs []types.BTCTx
+	if err := json.NewDecoder(resp.Body).Decode(&txs); err != nil {
+		resp.Body.Close()
+		cancel()
+		return nil, fmt.Errorf("failed to decode BTC transactions: %w", err)
+	}
+	resp.Body.Close()
+	cancel()
+
+	return txs, nil
+}
+
+func (m *Module) filterNewBTCTxs(ctx context.Context, client *http.Client, txs []types.BTCTx, startHeight, startIndex int64) ([]types.BTCTx, bool) {
+	filtered := make([]types.BTCTx, 0, len(txs))
+
+	for _, tx := range txs {
+		if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
+			log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx details, skipping")
+			continue
+		}
+
+		if startHeight > 0 && tx.Status.BlockHeight < startHeight {
+			return filtered, true
+		}
+
+		if startHeight > 0 && tx.Status.BlockHeight == startHeight {
+			idx, err := m.populateBTCTxIndex(ctx, client, &tx)
+			if err != nil {
+				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx index, skipping")
+				continue
+			}
+			if idx <= startIndex {
+				continue
+			}
+		} else {
+			if _, err := m.populateBTCTxIndex(ctx, client, &tx); err != nil {
+				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx index, skipping")
+				continue
+			}
+		}
+
+		processed, err := m.database.IsTransactionProcessed("BTC", tx.TxID)
+		if err != nil {
+			log.Err(err).Str("txid", tx.TxID).Msg("failed to check processed status, skipping")
+			continue
+		}
+		if processed {
+			continue
+		}
+
+		filtered = append(filtered, tx)
+	}
+
+	return filtered, false
+}
+
+func (m *Module) getBTCTxDetails(ctx context.Context, client *http.Client, txid string) (*types.BTCTx, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	url := fmt.Sprintf("%s/api/tx/%s", m.Config.BTCRPC, txid)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tx detail request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch tx detail: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("tx detail API returned status %d", resp.StatusCode)
+	}
+
+	var tx types.BTCTx
+	if err := json.NewDecoder(resp.Body).Decode(&tx); err != nil {
+		return nil, fmt.Errorf("failed to decode tx detail: %w", err)
+	}
+
+	return &tx, nil
+}
+
+func (m *Module) getBTCTransactionIndex(ctx context.Context, client *http.Client, txid string) (int64, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	url := fmt.Sprintf("%s/api/tx/%s/merkle-proof", m.Config.BTCRPC, txid)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create merkle proof request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch merkle proof: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("merkle proof API returned status %d", resp.StatusCode)
+	}
+
+	var proof struct {
+		Pos int64 `json:"pos"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&proof); err != nil {
+		return 0, fmt.Errorf("failed to decode merkle proof: %w", err)
+	}
+
+	return proof.Pos, nil
+}
+
+func (m *Module) ensureBTCTxBlockHeight(ctx context.Context, client *http.Client, tx *types.BTCTx) error {
+	if tx.Status.BlockHeight != 0 {
+		return nil
+	}
+
+	detail, err := m.getBTCTxDetails(ctx, client, tx.TxID)
+	if err != nil {
+		return err
+	}
+
+	if detail.Status.BlockHeight == 0 {
+		return fmt.Errorf("tx detail missing block height")
+	}
+
+	tx.Status.BlockHeight = detail.Status.BlockHeight
+	return nil
+}
+
+func (m *Module) populateBTCTxIndex(ctx context.Context, client *http.Client, tx *types.BTCTx) (int64, error) {
+	idx, err := m.getBTCTransactionIndex(ctx, client, tx.TxID)
+	if err != nil {
+		return 0, err
+	}
+
+	tx.TxIndex = idx
+	return idx, nil
 }
 
 // processBTCTxWithTransaction processes a single BTC transaction with pre-parsed address data

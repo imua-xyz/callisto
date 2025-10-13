@@ -127,7 +127,7 @@ SET name                 = EXCLUDED.name,
     decimals             = EXCLUDED.decimals,
     layer_zero_chain_id  = EXCLUDED.layer_zero_chain_id,
     staking_total_amount = EXCLUDED.staking_total_amount,
-    total_usd_value      = EXCLUDED.total_usd_value, 
+    total_usd_value      = EXCLUDED.total_usd_value,
     updated_at           = EXCLUDED.updated_at;`
 
 	_, err := db.SQL.Exec(stmt,
@@ -757,22 +757,23 @@ ON CONFLICT (chain_type, tx_hash) DO NOTHING`
 
 // GetLastProcessedTransaction gets the last processed transaction ID for a specific chain type
 // Used for pagination when fetching transactions from address API
-func (db *Db) GetLastProcessedTransaction(chainType string) (string, error) {
-	stmt := `SELECT tx_hash FROM bootstrap_processed_transactions
+func (db *Db) GetLastProcessedTransaction(chainType string) (string, int64, error) {
+	stmt := `SELECT tx_hash, block_height FROM bootstrap_processed_transactions
              WHERE chain_type = $1
              ORDER BY block_height DESC, processed_at DESC
              LIMIT 1`
 
 	var txHash string
-	err := db.SQL.QueryRow(stmt, chainType).Scan(&txHash)
+	var blockHeight sql.NullInt64
+	err := db.SQL.QueryRow(stmt, chainType).Scan(&txHash, &blockHeight)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", nil // No transactions processed yet, return empty string
+			return "", 0, nil // No transactions processed yet
 		}
-		return "", fmt.Errorf("failed to get last processed transaction for %s: %w", chainType, err)
+		return "", 0, fmt.Errorf("failed to get last processed transaction for %s: %w", chainType, err)
 	}
 
-	return txHash, nil
+	return txHash, blockHeight.Int64, nil
 }
 
 func (db *Db) OperatorAssetExists(operatorAddr string, assetID string) (bool, error) {
