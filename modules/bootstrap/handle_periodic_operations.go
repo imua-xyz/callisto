@@ -1085,7 +1085,7 @@ func (m *Module) saveBTCTransaction(dbTx *sql.Tx, tx types.BTCTx) error {
 		UpdatedAt:    time.Now(),
 	}
 
-	if err := m.database.SaveBootstrapStakerAssetInTx(nil, stakerAsset); err != nil {
+	if err := m.database.SaveBootstrapStakerAssetInTx(dbTx, stakerAsset); err != nil {
 		return fmt.Errorf("failed to save staker asset: %s", err)
 	}
 
