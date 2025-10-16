@@ -963,13 +963,16 @@ func (m *Module) getConfirmedVaultTransactions() ([]types.BTCTx, error) {
 	}
 
 	vaultAddress := normalizeAddress(m.Config.BTCVaultAddr)
-	cursor := startTxID
+	// Start with empty cursor to fetch from newest transactions first
+	// cursor will be updated to paginate towards older transactions
+	cursor := ""
 	pageCount := 0
 	stop := false
 
 	log.Info().Str("vault_address", vaultAddress).
-		Str("start_from_txid", startTxID).
-		Msg("starting BTC vault transaction fetch")
+		Str("target_txid", startTxID).
+		Int64("target_height", startHeight).
+		Msg("starting BTC vault transaction fetch from newest")
 
 	for !stop {
 		txs, err := m.fetchBTCTxsPage(ctx, client, vaultAddress, cursor)
@@ -1043,42 +1046,64 @@ func (m *Module) fetchBTCTxsPage(ctx context.Context, client *http.Client, vault
 func (m *Module) filterNewBTCTxs(ctx context.Context, client *http.Client, txs []types.BTCTx, startHeight, startIndex int64) ([]types.BTCTx, bool) {
 	filtered := make([]types.BTCTx, 0, len(txs))
 
+	// If no target (startHeight == 0), collect all confirmed transactions
+	if startHeight == 0 {
+		for _, tx := range txs {
+			if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
+				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx details, skipping")
+				continue
+			}
+
+			if !tx.Status.Confirmed {
+				continue
+			}
+
+			if _, err := m.populateBTCTxIndex(ctx, client, &tx); err != nil {
+				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx index, skipping")
+				continue
+			}
+
+			filtered = append(filtered, tx)
+		}
+		return filtered, false
+	}
+
+	// Filter transactions newer than the target (startHeight, startIndex)
+	// We're paginating from newest to oldest, so we collect until we reach the target
 	for _, tx := range txs {
 		if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
 			log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx details, skipping")
 			continue
 		}
 
-		if startHeight > 0 && tx.Status.BlockHeight < startHeight {
+		if !tx.Status.Confirmed {
+			continue
+		}
+
+		// If we reached a block older than target, stop pagination
+		if tx.Status.BlockHeight < startHeight {
 			return filtered, true
 		}
 
-		if startHeight > 0 && tx.Status.BlockHeight == startHeight {
-			idx, err := m.populateBTCTxIndex(ctx, client, &tx)
-			if err != nil {
-				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx index, skipping")
-				continue
-			}
-			if idx <= startIndex {
-				continue
-			}
-		} else {
-			if _, err := m.populateBTCTxIndex(ctx, client, &tx); err != nil {
-				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx index, skipping")
-				continue
-			}
-		}
-
-		processed, err := m.database.IsTransactionProcessed("BTC", tx.TxID)
+		// Get transaction index for proper comparison
+		txIndex, err := m.populateBTCTxIndex(ctx, client, &tx)
 		if err != nil {
-			log.Err(err).Str("txid", tx.TxID).Msg("failed to check processed status, skipping")
-			continue
-		}
-		if processed {
+			log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx index, skipping")
 			continue
 		}
 
-		filtered = append(filtered, tx)
+		// Include transactions from newer blocks
+		if tx.Status.BlockHeight > startHeight {
+			filtered = append(filtered, tx)
+		} else if tx.Status.BlockHeight == startHeight {
+			// For same block, only include if transaction index is higher (newer)
+			if txIndex > startIndex {
+				filtered = append(filtered, tx)
+			} else if txIndex == startIndex {
+				// Reached exactly the target transaction, stop here
+				return filtered, true
+			}
+		}
 	}
 
 	return filtered, false
