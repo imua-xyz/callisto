@@ -1049,13 +1049,18 @@ func (m *Module) filterNewBTCTxs(ctx context.Context, client *http.Client, txs [
 	// If no target (startHeight == 0), collect all confirmed transactions
 	if startHeight == 0 {
 		for _, tx := range txs {
-			if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
-				log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx details, skipping")
+			// Skip early if not confirmed. Unconfirmed txs do not have block height.
+			if !tx.Status.Confirmed {
 				continue
 			}
 
-			if !tx.Status.Confirmed {
-				continue
+			// Ensure block height is present for confirmed txs only
+			if tx.Status.BlockHeight == 0 {
+				if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
+					// Missing block height on confirmed tx is unexpected but non-fatal; skip quietly
+					log.Debug().Err(err).Str("txid", tx.TxID).Msg("missing BTC tx block height for confirmed tx, skipping")
+					continue
+				}
 			}
 
 			if _, err := m.populateBTCTxIndex(ctx, client, &tx); err != nil {
@@ -1071,13 +1076,17 @@ func (m *Module) filterNewBTCTxs(ctx context.Context, client *http.Client, txs [
 	// Filter transactions newer than the target (startHeight, startIndex)
 	// We're paginating from newest to oldest, so we collect until we reach the target
 	for _, tx := range txs {
-		if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
-			log.Err(err).Str("txid", tx.TxID).Msg("failed to fetch BTC tx details, skipping")
+		// Skip unconfirmed transactions before any extra calls
+		if !tx.Status.Confirmed {
 			continue
 		}
 
-		if !tx.Status.Confirmed {
-			continue
+		if tx.Status.BlockHeight == 0 {
+			if err := m.ensureBTCTxBlockHeight(ctx, client, &tx); err != nil {
+				// Height missing: treat as non-fatal and skip quietly
+				log.Debug().Err(err).Str("txid", tx.TxID).Msg("missing BTC tx block height for confirmed tx, skipping")
+				continue
+			}
 		}
 
 		// If we reached a block older than target, stop pagination
