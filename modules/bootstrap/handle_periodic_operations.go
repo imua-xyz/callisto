@@ -1661,11 +1661,16 @@ func (m *Module) parseXRPTransactionFromAccountTx(txData map[string]interface{})
 	return tx, nil
 }
 
-// parseXRPTransaction safely parses XRP transaction data from JSON map
-
 // processXRPTxWithTransaction processes a single XRP transaction within a database transaction
 // This function assumes the transaction has already been validated and memo data parsed
 func (m *Module) processXRPTxWithTransaction(tx types.XRPTransaction) error {
+	// Ensure 1-1 address binding at processing time (after transactions are sorted by ledger_index)
+	correctImuachainAddr, err := m.validateXRPAddressBinding(tx.Tx.Account, tx.ImuachainAddress, tx.Hash)
+	if err != nil {
+		return err
+	}
+	tx.ImuachainAddress = correctImuachainAddr
+
 	return m.processTransactionWithRetry("XRP", func() error {
 		return m.database.WithTransaction(func(dbTx *sql.Tx) error {
 			// Save business data using the pre-parsed address fields
@@ -1732,14 +1737,8 @@ func (m *Module) validateAndParseBootstrapXRPTx(tx *types.XRPTransaction) error 
 		}
 	*/
 
-	// Validate 1-1 address binding for XRP and get the correct imuachain address to use
-	correctImuachainAddr, err := m.validateXRPAddressBinding(tx.Tx.Account, memoData.ImuachainAddress, tx.Hash)
-	if err != nil {
-		return fmt.Errorf("XRP address binding validation failed: %w", err)
-	}
-
-	// Set parsed addresses in the transaction struct
-	tx.ImuachainAddress = correctImuachainAddr
+	// Set parsed addresses in the transaction struct (binding is established during processing stage)
+	tx.ImuachainAddress = memoData.ImuachainAddress
 	tx.ValidatorAddress = memoData.ValidatorAddress
 
 	return nil
