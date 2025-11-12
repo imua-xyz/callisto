@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 
+	sdkmath "cosmossdk.io/math"
+
 	assetstypes "github.com/imua-xyz/imuachain/x/assets/types"
 )
 
@@ -29,36 +31,59 @@ type StakerAsset struct {
 	Deposited           string
 	Withdrawable        string
 	PendingUndelegation string
+	GenesisDeposited    string
+}
+
+// ParsedStakerAsset is a parsed struct used for business logic, such as airdrop calculation.
+type ParsedStakerAsset struct {
+	StakerID            string
+	AssetID             string
+	Deposited           sdkmath.Int
+	Withdrawable        sdkmath.Int
+	PendingUndelegation sdkmath.Int
+	GenesisDeposited    sdkmath.Int
 }
 
 // NewStakerAssetFromInfo creates a new StakerAsset instance from the given
 // StakerID, AssetID, StakerAssetInfo and additionalSlashed amount
 func NewStakerAssetFromInfo(
+	isGenesis bool,
 	stakerID string, assetID string,
 	info assetstypes.StakerAssetInfo,
 ) *StakerAsset {
-	return &StakerAsset{
+	ret := &StakerAsset{
 		StakerID:            stakerID,
 		AssetID:             assetID,
 		Deposited:           info.TotalDepositAmount.String(),
 		Withdrawable:        info.WithdrawableAmount.String(),
 		PendingUndelegation: info.PendingUndelegationAmount.String(),
+		GenesisDeposited:    sdkmath.ZeroInt().String(),
 	}
+	if isGenesis {
+		ret.GenesisDeposited = ret.Deposited
+	}
+	return ret
 }
 
 // NewStakerAssetFromStr creates a new StakerAsset instance from the given
 // StakerID, AssetID, and string versions of the amounts.
 func NewStakerAssetFromStr(
+	isGenesis bool,
 	stakerID string, assetID string,
 	deposited string, withdrawable string, pendingUndelegation string,
 ) *StakerAsset {
-	return &StakerAsset{
+	ret := &StakerAsset{
 		StakerID:            stakerID,
 		AssetID:             assetID,
 		Deposited:           deposited,
 		Withdrawable:        withdrawable,
 		PendingUndelegation: pendingUndelegation,
+		GenesisDeposited:    sdkmath.ZeroInt().String(),
 	}
+	if isGenesis {
+		ret.GenesisDeposited = ret.Deposited
+	}
+	return ret
 }
 
 // OperatorAsset is a helper struct containing string versions of OperatorAssetInfo

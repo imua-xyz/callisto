@@ -34,7 +34,7 @@ func (s Source) GetEpochInfos(height int64) ([]epochstypes.EpochInfo, error) {
 
 	var ret []epochstypes.EpochInfo
 	var nextKey []byte
-	var stop = false
+	stop := false
 	for !stop {
 		res, err := s.querier.EpochInfos(
 			ctx,

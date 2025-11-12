@@ -27,7 +27,6 @@ func (m *Module) HandleBlock(
 
 // updateBlockTimeFromGenesis insert average block time from genesis
 func (m *Module) updateBlockTimeFromGenesis(block *tmctypes.ResultBlock) error {
-
 	genesis, err := m.db.GetGenesis()
 	if err != nil {
 		return fmt.Errorf("error while getting genesis: %s", err)

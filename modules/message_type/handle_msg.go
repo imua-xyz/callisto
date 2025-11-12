@@ -12,14 +12,14 @@ import (
 
 // HandleMsg represents a message handler that stores the given message inside the proper database table
 func (m *Module) HandleMsg(
-	index int, msg sdk.Msg, tx *types.Tx) error {
+	index int, msg sdk.Msg, tx *types.Tx,
+) error {
 	// Save message type
 	err := m.db.SaveMessageType(msgtypes.NewMessageType(
 		proto.MessageName(msg),
 		utils.GetModuleNameFromTypeURL(proto.MessageName(msg)),
 		utils.GetMsgFromTypeURL(proto.MessageName(msg)),
 		tx.Height))
-
 	if err != nil {
 		return err
 	}

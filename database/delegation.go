@@ -38,7 +38,8 @@ func (db *Db) SaveDelegationState(state *types.DelegationState) error {
 	INSERT INTO delegation_states (staker_id, asset_id, operator_addr, undelegatable_share, wait_undelegation_amount)
 	VALUES ($1, $2, $3, $4, $5)
 	ON CONFLICT (staker_id, asset_id, operator_addr) DO UPDATE
-	SET undelegatable_share = EXCLUDED.undelegatable_share, wait_undelegation_amount = EXCLUDED.wait_undelegation_amount;`
+	SET undelegatable_share = EXCLUDED.undelegatable_share + delegation_states.undelegatable_share,
+	    wait_undelegation_amount = EXCLUDED.wait_undelegation_amount + delegation_states.wait_undelegation_amount;`
 	_, err := db.SQL.Exec(
 		stmt,
 		state.StakerID,
@@ -51,6 +52,34 @@ func (db *Db) SaveDelegationState(state *types.DelegationState) error {
 		return fmt.Errorf("failed to save delegation state: %w", err)
 	}
 	return nil
+}
+
+// GetAllStakersFromDelegationStates returns all unique staker IDs from the delegation_states table.
+func (db *Db) GetAllStakersFromDelegationStates() ([]string, error) {
+	stmt := `
+	SELECT DISTINCT staker_id 
+	FROM delegation_states;`
+
+	rows, err := db.SQL.Query(stmt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all staker_ids from delegation_states: %w", err)
+	}
+	defer rows.Close()
+
+	var stakerIDs []string
+	for rows.Next() {
+		var stakerID string
+		if err := rows.Scan(&stakerID); err != nil {
+			return nil, fmt.Errorf("failed to scan staker_id: %w", err)
+		}
+		stakerIDs = append(stakerIDs, stakerID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return stakerIDs, nil
 }
 
 // AppendStakerToOperatorAsset appends the staker to the operator + asset combination.
@@ -70,12 +99,29 @@ func (db *Db) AppendStakerToOperatorAsset(stakerID, operatorAddr, assetID string
 // GetStakersByOperatorAsset gets the stakers for the operator + asset combination.
 func (db *Db) GetStakersByOperatorAsset(operatorAddr, assetID string) ([]string, error) {
 	stmt := `
-	SELECT staker_id FROM operator_asset_stakers WHERE operator_addr = $1 AND asset_id = $2;`
-	var stakerIDs []string
-	err := db.SQL.QueryRow(stmt, operatorAddr, assetID).Scan(&stakerIDs)
+	SELECT staker_id 
+	FROM operator_asset_stakers 
+	WHERE operator_addr = $1 AND asset_id = $2;`
+
+	rows, err := db.SQL.Query(stmt, operatorAddr, assetID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stakers by operator asset: %w", err)
+		return nil, fmt.Errorf("failed to query stakers by operator and asset: %w", err)
 	}
+	defer rows.Close()
+
+	var stakerIDs []string
+	for rows.Next() {
+		var stakerID string
+		if err := rows.Scan(&stakerID); err != nil {
+			return nil, fmt.Errorf("failed to scan staker_id: %w", err)
+		}
+		stakerIDs = append(stakerIDs, stakerID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
 	return stakerIDs, nil
 }
 

@@ -62,7 +62,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 			deposit := layerTwo.Info
 			err = m.db.SaveStakerAsset(
 				types.NewStakerAssetFromInfo(
-					stakerID, assetID, deposit,
+					true, stakerID, assetID, deposit,
 				),
 			)
 			if err != nil {

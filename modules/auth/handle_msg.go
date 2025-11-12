@@ -48,7 +48,6 @@ func (m *Module) HandleMsg(_ int, msg sdk.Msg, tx *juno.Tx) error {
 }
 
 func (m *Module) handleMsgCreateVestingAccount(msg *vestingtypes.MsgCreateVestingAccount, txTimestamp time.Time) error {
-
 	accAddress, err := sdk.AccAddressFromBech32(msg.ToAddress)
 	if err != nil {
 		return fmt.Errorf("error while converting account address %s", err)

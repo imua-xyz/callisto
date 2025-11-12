@@ -41,7 +41,7 @@ func NewDelegationState(
 	return NewDelegationStateFromStr(
 		stakerID, assetID, operatorAddr,
 		delegationAmounts.UndelegatableShare.String(),
-		delegationAmounts.WaitUndelegationAmount.String(),
+		delegationAmounts.PendingUndelegationAmount.String(),
 	)
 }
 

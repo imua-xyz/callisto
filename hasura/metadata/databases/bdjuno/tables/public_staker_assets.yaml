@@ -15,6 +15,7 @@ select_permissions:
     - pending_undelegation
     - delegated
     - lifetime_slashed
+    - genesis_deposit
     filter: {}
     limit: 100
   role: anonymous

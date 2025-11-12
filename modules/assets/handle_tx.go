@@ -214,7 +214,7 @@ func (m *Module) handleStakerEvents(height int64, events []abci.Event) error {
 			return fmt.Errorf("error while getting pending undelegation amount: %s", err)
 		}
 		asset := types.NewStakerAssetFromStr(
-			stakerID.Value, assetID.Value,
+			false, stakerID.Value, assetID.Value,
 			depositAmount.Value, withdrawableAmount.Value, pendingUndelegationAmount.Value,
 		)
 		if err := m.db.SaveStakerAsset(asset); err != nil {

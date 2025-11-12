@@ -5,11 +5,13 @@ import (
 	"github.com/forbole/callisto/v4/modules/assets"
 	"github.com/forbole/callisto/v4/modules/avs"
 	"github.com/forbole/callisto/v4/modules/delegation"
+	"github.com/forbole/callisto/v4/modules/distribution"
 	"github.com/forbole/callisto/v4/modules/dogfood"
 	"github.com/forbole/callisto/v4/modules/epochs"
 	"github.com/forbole/callisto/v4/modules/immint"
 	"github.com/forbole/callisto/v4/modules/operator"
 	"github.com/forbole/callisto/v4/modules/oracle"
+	"github.com/forbole/callisto/v4/modules/tokenomics"
 	"github.com/forbole/callisto/v4/modules/types"
 
 	"github.com/forbole/juno/v5/modules/pruning"
@@ -50,9 +52,7 @@ func UniqueAddressesParser(parser messages.MessageAddressesParser) messages.Mess
 
 // --------------------------------------------------------------------------------------------------------------------
 
-var (
-	_ registrar.Registrar = &Registrar{}
-)
+var _ registrar.Registrar = &Registrar{}
 
 // Registrar represents the modules.Registrar that allows to register all modules that are supported by BigDipper
 type Registrar struct {
@@ -172,5 +172,7 @@ func (r *Registrar) BuildModules(ctx registrar.Context) jmodules.Modules {
 		// imslashTypes.ModuleName,
 		// distrtypes.ModuleName,
 		// crisistypes.ModuleName,
+		distribution.NewModule(sources.DistributionSource, cdc, db),
+		tokenomics.NewModule(sources.DistributionSource, ctx.JunoConfig, db),
 	}
 }

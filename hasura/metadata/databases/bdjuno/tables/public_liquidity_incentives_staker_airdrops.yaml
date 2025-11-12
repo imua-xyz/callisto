@@ -1,0 +1,25 @@
+table:
+  name: liquidity_incentives_staker_airdrops
+  schema: public
+object_relationships:
+  - name: airdrop_round_info
+    using:
+      foreign_key_constraint_on: airdrop_round
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - staker_id
+        - airdrop_round
+        - outstanding_rewards
+        - withdrawn_rewards
+        - claimed_rewards
+        - unclaimed_rewards
+        - total_rewards
+        - round_native_rewards
+        - airdrop_reward_amount
+        - is_distributed
+        - distributed_at
+        - created_at
+      filter: {}
+      limit: 100

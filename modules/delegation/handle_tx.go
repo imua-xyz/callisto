@@ -78,17 +78,17 @@ func (m *Module) handleDelegationStateUpdates(events []abci.Event) error {
 		if err != nil {
 			return fmt.Errorf("error while finding asset ID: %s", err)
 		}
-		waitUndelegationAmount, err := juno.FindAttributeByKey(event, delegationtypes.AttributeKeyWaitUndelegationAmount)
+		waitUndelegationAmountDelta, err := juno.FindAttributeByKey(event, delegationtypes.AttributeKeyPendingUndelegationAmountDelta)
 		if err != nil {
 			return fmt.Errorf("error while finding wait undelegation amount: %s", err)
 		}
-		undelegatableShare, err := juno.FindAttributeByKey(event, delegationtypes.AttributeKeyUndelegatableShare)
+		undelegatableShareDelta, err := juno.FindAttributeByKey(event, delegationtypes.AttributeKeyUndelegatableShareDelta)
 		if err != nil {
 			return fmt.Errorf("error while finding undelegatable share: %s", err)
 		}
 		delegationState := types.NewDelegationStateFromStr(
 			stakerID.Value, assetID.Value, operatorAddr.Value,
-			undelegatableShare.Value, waitUndelegationAmount.Value,
+			undelegatableShareDelta.Value, waitUndelegationAmountDelta.Value,
 		)
 		if err := m.db.SaveDelegationState(delegationState); err != nil {
 			return fmt.Errorf("error while saving delegation state: %s", err)

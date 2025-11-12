@@ -108,7 +108,6 @@ SET slash_contract = EXCLUDED.slash_contract,
 		data.OutHeight,
 		data.Jailed,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to save opted state: %w", err)
 	}
@@ -142,7 +141,6 @@ SET self_usd_value = EXCLUDED.self_usd_value,
 		data.TotalUSDValue,
 		data.ActiveUSDValue,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to save operator USD value (operator: %s, avs: %s, self: %s, total: %s, active: %s): %w",
 			data.OperatorAddress, data.AvsAddress, data.SelfUSDValue, data.TotalUSDValue, data.ActiveUSDValue, err)
@@ -178,7 +176,6 @@ SET usd_value = EXCLUDED.usd_value;`
 		data.AvsAddress,
 		data.USDValue,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to save AVS USD value: %w", err)
 	}
@@ -216,7 +213,6 @@ WHERE operator_addr = $1 AND chain_id = $2;`
 		pubKey,
 		consAddress,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to save previous consensus key: %w", err)
 	}
@@ -365,7 +361,6 @@ WHERE operator_addr = $1 AND chain_id = $2;`
 		operatorAddr,
 		chainID,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to mark operator key removal: %w", err)
 	}
@@ -386,7 +381,6 @@ WHERE operator_addr = $1 AND chain_id = $2;`
 		operatorAddr,
 		chainID,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to remove operator consensus key: %w", err)
 	}

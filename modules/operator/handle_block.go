@@ -90,7 +90,7 @@ func (m *Module) handleAvsUSDValues(events []abci.Event) error {
 
 // handleOperatorUSDValueDeletion handles the events emitted when an operator's usd values are deleted.
 func (m *Module) handleOperatorUSDValueDeletion(events []abci.Event) error {
-	events = juno.FindEventsByType(events, operatortypes.EventTypeDeleteOperatorUSDValue)
+	events = juno.FindEventsByType(events, operatortypes.EventTypeDeleteOperatorUSDValues)
 	for _, event := range events {
 		operatorAddr, err := juno.FindAttributeByKey(event, operatortypes.AttributeKeyOperator)
 		if err != nil {

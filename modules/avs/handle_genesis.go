@@ -3,6 +3,7 @@ package avs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/imua-xyz/imuachain/utils"
 	"strings"
 
 	tmtypes "github.com/cometbft/cometbft/types"
@@ -19,8 +20,8 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	// TODO: compare against handleDogfoodAvsCreationEvents and why does it not work?
 	// repeats are permitted by these SaveXXX functions, so it's ok to add them manually
 	// if they exist or not in the genesis.
-	chainID := avstypes.ChainIDWithoutRevision(doc.ChainID)
-	avsAddr := avstypes.GenerateAVSAddress(chainID)
+	chainID := utils.ChainIDWithoutRevision(doc.ChainID)
+	avsAddr := utils.GenerateAVSAddress(chainID)
 	if err := m.db.SaveAvsAddr(avsAddr); err != nil {
 		return fmt.Errorf("error while saving avs address: %s", err)
 	}

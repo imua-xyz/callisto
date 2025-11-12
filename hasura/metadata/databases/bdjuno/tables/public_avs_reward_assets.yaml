@@ -1,0 +1,30 @@
+table:
+  name: avs_reward_assets
+  schema: public
+object_relationships:
+  - name: avs
+    using:
+      foreign_key_constraint_on: avs_addr
+  - name: client_chain
+    using:
+      foreign_key_constraint_on: layer_zero_chain_id
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - avs_addr
+        - asset_id
+        - name
+        - symbol
+        - address
+        - decimals
+        - layer_zero_chain_id
+        - imuachain_index
+        - meta_info
+        - reward_pool_balance
+        - reward_pool_total
+        - reward_allocation_total
+        - reward_pool_withdrawn_total
+        - reward_pool_debt
+      filter: {}
+      limit: 100

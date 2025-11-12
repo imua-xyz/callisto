@@ -10,9 +10,7 @@ import (
 	mintsource "github.com/forbole/callisto/v4/modules/mint/source"
 )
 
-var (
-	_ mintsource.Source = &Source{}
-)
+var _ mintsource.Source = &Source{}
 
 // Source implements mintsource.Source using a local node
 type Source struct {

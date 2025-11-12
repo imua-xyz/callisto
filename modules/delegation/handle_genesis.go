@@ -3,6 +3,7 @@ package delegation
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/imua-xyz/imuachain/utils"
 
 	tmtypes "github.com/cometbft/cometbft/types"
 
@@ -55,7 +56,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 			}
 			delegation := types.NewImAssetDelegationFromStr(
 				keys.StakerId, delegatedAmount.String(),
-				state.States.WaitUndelegationAmount.String(),
+				state.States.PendingUndelegationAmount.String(),
 			)
 			if err := m.db.AccumulateImAssetDelegation(delegation); err != nil {
 				return fmt.Errorf("error while accumulating im asset delegation: %s", err)
@@ -65,7 +66,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 
 	// stakers for each operator
 	for _, data := range genState.StakersByOperator {
-		parsed, err := assetstypes.ParseJoinedStoreKey([]byte(data.Key), 2)
+		parsed, err := utils.ParseJoinedKeyWithCount([]byte(data.Key), 2)
 		if err != nil {
 			return fmt.Errorf("error while parsing staker by operator key: %s", err)
 		}

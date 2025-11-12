@@ -62,7 +62,7 @@ func NewOraclePriceHistory(
 ) *OraclePriceHistory {
 	return &OraclePriceHistory{
 		TokenID:        oracleTokenConfig.TokenID,
-		RoundID:        oracleTokenConfig.NextRoundID,
+		RoundID:        fmt.Sprintf("%d", priceTimeRound.RoundID),
 		Price:          priceTimeRound.Price,
 		PriceDecimals:  fmt.Sprintf("%d", priceTimeRound.Decimal),
 		PriceTimestamp: priceTimeRound.Timestamp,

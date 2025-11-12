@@ -29,3 +29,29 @@ SET avs_addr = EXCLUDED.avs_addr;`
 	}
 	return nil
 }
+
+// GetAllAvsAddrs returns all AVS addresses from the database.
+func (db *Db) GetAllAvsAddrs() ([]string, error) {
+	stmt := `SELECT avs_addr FROM avs ORDER BY avs_addr;`
+
+	rows, err := db.SQL.Query(stmt)
+	if err != nil {
+		return nil, fmt.Errorf("error while querying AVS addresses: %w", err)
+	}
+	defer rows.Close()
+
+	var avsAddrs []string
+	for rows.Next() {
+		var addr string
+		if err := rows.Scan(&addr); err != nil {
+			return nil, fmt.Errorf("error while scanning AVS address: %w", err)
+		}
+		avsAddrs = append(avsAddrs, addr)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return avsAddrs, nil
+}

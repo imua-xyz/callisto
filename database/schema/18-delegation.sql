@@ -32,6 +32,7 @@ CREATE TABLE delegation_states (
     CONSTRAINT fk_operator FOREIGN KEY (operator_addr) REFERENCES operators (earnings_addr),
     CONSTRAINT fk_asset_id FOREIGN KEY (asset_id) REFERENCES assets_tokens (asset_id)
 );
+CREATE INDEX idx_delegation_states_staker ON delegation_states (staker_id);
 
 -- staker to operator such that staker is unique
 CREATE TABLE staker_operator_associations (

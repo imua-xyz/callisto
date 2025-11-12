@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	assetstypes "github.com/imua-xyz/imuachain/x/assets/types"
+
 	tmtypes "github.com/cometbft/cometbft/types"
 
 	"github.com/forbole/callisto/v4/types"
 
-	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	distrtypes "github.com/imua-xyz/imuachain/x/feedistribution/types"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,5 +31,31 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 		return fmt.Errorf("error while storing genesis distribution params: %s", err)
 	}
 
+	// save reward assets
+	for _, avsRewardAssets := range genState.AllAvsRewardAssets {
+		for _, rewardAsset := range avsRewardAssets.AvsRewardAssets {
+			err := m.db.SaveAVSRewardAsset(&types.AVSRewardAsset{
+				AVSAddr: avsRewardAssets.Avs,
+				AssetID: rewardAsset.AssetBasicInfo.AssetID(),
+				AssetInfo: assetstypes.AssetInfo{
+					Name:             rewardAsset.AssetBasicInfo.Name,
+					Symbol:           rewardAsset.AssetBasicInfo.Symbol,
+					Address:          rewardAsset.AssetBasicInfo.Address,
+					Decimals:         rewardAsset.AssetBasicInfo.Decimals,
+					LayerZeroChainID: rewardAsset.AssetBasicInfo.LayerZeroChainID,
+					ImuaChainIndex:   rewardAsset.AssetBasicInfo.ImuaChainIndex,
+					MetaInfo:         rewardAsset.AssetBasicInfo.MetaInfo,
+				},
+				AVSRewardAssetState: distrtypes.AVSRewardAssetState{
+					RewardPoolBalance:     rewardAsset.RewardAssetState.RewardPoolBalance,
+					RewardPoolTotal:       rewardAsset.RewardAssetState.RewardPoolTotal,
+					RewardAllocationTotal: rewardAsset.RewardAssetState.RewardAllocationTotal,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("error while storing genesis avs reward assets,avs: %s, assetID:%s, err:%s", avsRewardAssets.Avs, rewardAsset.AssetBasicInfo.AssetID(), err)
+			}
+		}
+	}
 	return nil
 }

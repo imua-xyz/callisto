@@ -1,0 +1,23 @@
+table:
+  name: operator_rewards
+  schema: public
+object_relationships:
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_addr
+  - name: avs
+    using:
+      foreign_key_constraint_on: avs_addr
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - operator_addr
+        - avs_addr
+        - total_rewards
+        - total_commission
+        - withdrawn_commission
+        - total_staker_rewards
+        - remaining_commission
+      filter: {}
+      limit: 100

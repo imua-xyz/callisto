@@ -3,6 +3,7 @@ package operator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/imua-xyz/imuachain/utils"
 
 	tmtypes "github.com/cometbft/cometbft/types"
 	junotypes "github.com/forbole/juno/v5/types"
@@ -10,7 +11,6 @@ import (
 	"github.com/forbole/callisto/v4/types"
 
 	keytypes "github.com/imua-xyz/imuachain/types/keys"
-	assetstypes "github.com/imua-xyz/imuachain/x/assets/types"
 	operatortypes "github.com/imua-xyz/imuachain/x/operator/types"
 	"github.com/rs/zerolog/log"
 )
@@ -52,7 +52,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	}
 	// - operator opted in state
 	for _, data := range genState.OptStates {
-		keys, err := assetstypes.ParseJoinedStoreKey([]byte(data.Key), 2)
+		keys, err := utils.ParseJoinedKeyWithCount([]byte(data.Key), 2)
 		if err != nil {
 			return fmt.Errorf("failed to parse joined key: %w", err)
 		}
@@ -66,7 +66,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	}
 	// - operator usd values
 	for _, usdValue := range genState.OperatorUSDValues {
-		parsed, err := assetstypes.ParseJoinedStoreKey([]byte(usdValue.Key), 2)
+		parsed, err := utils.ParseJoinedKeyWithCount([]byte(usdValue.Key), 2)
 		if err != nil {
 			return fmt.Errorf("error while parsing operator usd value: %s", err)
 		}
@@ -95,7 +95,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	// to another within this epoch. it is useful, for example, if you want to
 	// track the key to the operator and find signing details.
 	for _, prev := range genState.PreConsKeys {
-		parsed, err := assetstypes.ParseJoinedStoreKey([]byte(prev.Key), 2)
+		parsed, err := utils.ParseJoinedKeyWithCount([]byte(prev.Key), 2)
 		if err != nil {
 			return fmt.Errorf("error while parsing prev cons key: %s", err)
 		}
@@ -109,7 +109,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	}
 	// - consensus key removals
 	for _, removal := range genState.OperatorKeyRemovals {
-		parsed, err := assetstypes.ParseJoinedStoreKey([]byte(removal.Key), 2)
+		parsed, err := utils.ParseJoinedKeyWithCount([]byte(removal.Key), 2)
 		if err != nil {
 			return fmt.Errorf("error while parsing operator key removal: %s", err)
 		}

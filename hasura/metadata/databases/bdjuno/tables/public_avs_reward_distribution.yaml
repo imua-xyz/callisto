@@ -1,0 +1,19 @@
+table:
+  name: avs_reward_distribution
+  schema: public
+object_relationships:
+  - name: avs
+    using:
+      foreign_key_constraint_on: avs_addr
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - avs_addr
+        - epoch_identifier
+        - rewards
+        - operator_reward_proportions
+        - rewards_epoch_number
+        - proportions_epoch_number
+      filter: {}
+      limit: 100

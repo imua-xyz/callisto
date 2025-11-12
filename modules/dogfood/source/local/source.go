@@ -59,7 +59,7 @@ func (s Source) GetValidators(height int64) ([]dogfoodtypes.ImuachainValidator, 
 
 	var validators []dogfoodtypes.ImuachainValidator
 	var nextKey []byte
-	var stop = false
+	stop := false
 	for !stop {
 		res, err := s.querier.Validators(
 			sdk.WrapSDKContext(ctx),

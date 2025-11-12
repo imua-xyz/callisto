@@ -1,0 +1,16 @@
+table:
+  name: community_pool
+  schema: public
+object_relationships:
+  - name: avs
+    using:
+      foreign_key_constraint_on: avs_addr
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - avs_addr
+        - coins
+        - height
+      filter: {}
+      limit: 100

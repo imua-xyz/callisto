@@ -46,5 +46,5 @@ func (s Source) GetDelegatedAmount(
 		return sdkmath.ZeroInt(), err
 	}
 
-	return res.MaxUndelegatableAmount, nil
+	return res.SingleDelegationInfo.MaxUndelegatableAmount, nil
 }

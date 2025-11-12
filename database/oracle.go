@@ -3,9 +3,12 @@ package database
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/forbole/callisto/v4/types"
 	oracletypes "github.com/imua-xyz/imuachain/x/oracle/types"
@@ -116,6 +119,25 @@ WHERE oracle_asset_id_to_token_id.asset_id = excluded.asset_id;`
 	return nil
 }
 
+// GetTokenIDByOracleAssetID retrieves the token ID associated with the given oracle asset ID.
+func (db *Db) GetTokenIDByOracleAssetID(assetID string) (int64, error) {
+	stmt := `
+SELECT token_id
+FROM oracle_asset_id_to_token_id
+WHERE asset_id = $1;`
+
+	var tokenID int64
+	err := db.SQL.QueryRow(stmt, assetID).Scan(&tokenID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("token ID not found for asset ID: %s", assetID)
+		}
+		return 0, fmt.Errorf("error querying token ID for asset ID %s: %w", assetID, err)
+	}
+
+	return tokenID, nil
+}
+
 // SaveOracleTokenConfigIfNeeded stores the given token config inside the database
 func (db *Db) SaveOracleTokenConfigIfNeeded(tokenConfig *types.OracleTokenConfig) error {
 	stmt := `
@@ -142,6 +164,25 @@ WHERE oracle_token_config.token_id = $1;`
 		return fmt.Errorf("error while increasing next round id: %s", err)
 	}
 	return nil
+}
+
+// GetNextRoundID retrieves the next round ID for the given token ID.
+func (db *Db) GetNextRoundID(tokenID int64) (int64, error) {
+	stmt := `
+SELECT next_round_id
+FROM oracle_token_config
+WHERE token_id = $1;`
+
+	var nextRoundID int64
+	err := db.SQL.QueryRow(stmt, tokenID).Scan(&nextRoundID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("next round ID not found for token ID: %d", tokenID)
+		}
+		return 0, fmt.Errorf("error querying next round ID for token ID %d: %w", tokenID, err)
+	}
+
+	return nextRoundID, nil
 }
 
 // SaveOraclePriceHistory stores the given price history inside the database
@@ -177,4 +218,61 @@ ON CONFLICT (token_id, round_id) DO NOTHING;`
 		)
 	}
 	return nil
+}
+
+// GetOraclePriceHistory retrieves the oracle price history for a given token ID and round ID.
+func (db *Db) GetOraclePriceHistory(tokenID int64, roundID int64) (*oracletypes.PriceTimeRound, error) {
+	stmt := `
+SELECT price, price_decimals, price_timestamp
+FROM oracle_price_history
+WHERE token_id = $1 AND round_id = $2;`
+
+	var (
+		price          string
+		priceDecimals  int
+		priceTimestamp time.Time
+	)
+
+	err := db.SQL.QueryRow(stmt, tokenID, roundID).Scan(
+		&price,
+		&priceDecimals,
+		&priceTimestamp,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("no price history found for tokenID %d and roundID %d", tokenID, roundID)
+		}
+		return nil, fmt.Errorf("error querying price history for tokenID %d and roundID %d: %w", tokenID, roundID, err)
+	}
+
+	return &oracletypes.PriceTimeRound{
+		RoundID:   uint64(roundID),
+		Price:     price,
+		Decimal:   int32(priceDecimals),
+		Timestamp: priceTimestamp.Format(oracletypes.TimeLayout),
+	}, nil
+}
+
+// GetLatestPriceByAssetID retrieves the latest price for a given assetID.
+func (db *Db) GetLatestPriceByAssetID(assetID string) (*oracletypes.Price, error) {
+	tokenID, err := db.GetTokenIDByOracleAssetID(assetID)
+	if err != nil {
+		return nil, err
+	}
+	nextRoundID, err := db.GetNextRoundID(tokenID)
+	if err != nil {
+		return nil, err
+	}
+	priceTimeRound, err := db.GetOraclePriceHistory(tokenID, nextRoundID-1)
+	if err != nil {
+		return nil, err
+	}
+	v, ok := sdkmath.NewIntFromString(priceTimeRound.Price)
+	if !ok {
+		return nil, fmt.Errorf("invalid price in priceTimeRound: %s", priceTimeRound.Price)
+	}
+	return &oracletypes.Price{
+		Value:   v,
+		Decimal: uint8(priceTimeRound.Decimal), // #nosec G115
+	}, nil
 }

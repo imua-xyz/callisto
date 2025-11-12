@@ -1,0 +1,28 @@
+table:
+  name: genesis_pool_airdrop_rounds
+  schema: public
+array_relationships:
+  - name: genesis_staker_airdrops
+    using:
+      foreign_key_constraint_on:
+        column: airdrop_round
+        table:
+          name: genesis_staker_airdrops
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - airdrop_round
+        - block_height
+        - total_stakers
+        - total_usd_value
+        - total_reward_amount
+        - distributed_stakers
+        - round_duration
+        - round_start_at
+        - round_end_at
+        - created_at
+        - is_completed
+      filter: {}
+      limit: 100

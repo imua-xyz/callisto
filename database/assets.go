@@ -1,7 +1,9 @@
 package database
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	sdkmath "cosmossdk.io/math"
@@ -99,6 +101,25 @@ SET name = EXCLUDED.name,
 	return nil
 }
 
+// GetTokenDecimalsByID retrieves the decimals of a token by its asset ID.
+func (db *Db) GetTokenDecimalsByID(assetID string) (int, error) {
+	stmt := `
+SELECT decimals
+FROM assets_tokens
+WHERE asset_id = $1;`
+
+	var decimals int
+	err := db.SQL.QueryRow(stmt, assetID).Scan(&decimals)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("no decimals found for asset_id %s", assetID)
+		}
+		return 0, fmt.Errorf("failed to retrieve decimals for asset_id %s: %w", assetID, err)
+	}
+
+	return decimals, nil
+}
+
 // UpdateAssetMetadata updates the metadata for an asset based on its assetID.
 func (db *Db) UpdateAssetMetadata(
 	assetID string, newMetaInfo string,
@@ -139,17 +160,19 @@ WHERE asset_id = $2;`
 
 // SaveStakerAsset saves a staker asset record in the database.
 func (db *Db) SaveStakerAsset(data *types.StakerAsset) error { // No lastUpdatedHeight here
+	// The genesis_deposit is only set on insert and left unchanged on update to
+	// avoid being affected by deposits after mainnet launch.
 	stmt := `
 INSERT INTO staker_assets (
     staker_id, asset_id,
     deposited, withdrawable, pending_undelegation,
-    delegated, lifetime_slashed
+    delegated, lifetime_slashed, genesis_deposit
 ) 
 VALUES (
     $1, $2,
     $3, $4, $5,
     ($3::numeric - $4::numeric - $5::numeric),
-    0
+    0, $6
 )
 ON CONFLICT (staker_id, asset_id) DO UPDATE
 SET deposited = EXCLUDED.deposited, 
@@ -165,11 +188,61 @@ SET deposited = EXCLUDED.deposited,
 		data.Deposited,           // $3
 		data.Withdrawable,        // $4
 		data.PendingUndelegation, // $5
+		data.GenesisDeposited,    // $6
 		// Only 5 arguments passed to Exec
 	)
 	if err != nil {
 		return fmt.Errorf("failed to save staker asset: %w", err)
 	}
+	return nil
+}
+
+func (db *Db) IterateAirdropStakerAssets(opFunc func(sa types.ParsedStakerAsset) error) error {
+	stmt := `
+	SELECT staker_id, asset_id, deposited, genesis_deposit
+	FROM staker_assets
+	WHERE genesis_deposit > 0 AND deposited >= genesis_deposit
+	ORDER BY staker_id, asset_id;`
+
+	rows, err := db.SQL.Query(stmt)
+	if err != nil {
+		return fmt.Errorf("failed to query genesis deposits: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var sa types.ParsedStakerAsset
+		var depositedStr, genesisDepositedStr string
+		err := rows.Scan(
+			&sa.StakerID,
+			&sa.AssetID,
+			&depositedStr,
+			&genesisDepositedStr,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to scan staker asset: %w", err)
+		}
+
+		depositedInt, ok := sdkmath.NewIntFromString(depositedStr)
+		if !ok {
+			return fmt.Errorf("invalid deposited: %s", depositedStr)
+		}
+		genesisDepositInt, ok := sdkmath.NewIntFromString(genesisDepositedStr)
+		if !ok {
+			return fmt.Errorf("invalid genesis deposit: %s", genesisDepositedStr)
+		}
+		sa.Deposited = depositedInt
+		sa.GenesisDeposited = genesisDepositInt
+
+		if err := opFunc(sa); err != nil {
+			return fmt.Errorf("opFunc failed for staker_id %s, asset_id %s: %w", sa.StakerID, sa.AssetID, err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("row iteration error: %w", err)
+	}
+
 	return nil
 }
 

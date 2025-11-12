@@ -19,3 +19,6 @@ callisto-config
 .vscode
 
 .nobackup
+
+# asdf configuration
+.tool-versions

@@ -10,9 +10,7 @@ import (
 	actionstypes "github.com/forbole/callisto/v4/modules/actions/types"
 )
 
-var (
-	waitGroup sync.WaitGroup
-)
+var waitGroup sync.WaitGroup
 
 func (m *Module) RunAdditionalOperations() error {
 	// Build the worker
@@ -41,7 +39,7 @@ func (m *Module) RunAdditionalOperations() error {
 // trapSignal will listen for any OS signal and invoke Done on the main
 // WaitGroup allowing the main process to gracefully exit.
 func (m *Module) trapSignal() {
-	var sigCh = make(chan os.Signal, 1)
+	sigCh := make(chan os.Signal, 1)
 
 	signal.Notify(sigCh, syscall.SIGTERM)
 	signal.Notify(sigCh, syscall.SIGINT)

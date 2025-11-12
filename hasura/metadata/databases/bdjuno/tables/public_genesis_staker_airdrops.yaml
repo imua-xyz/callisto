@@ -1,0 +1,19 @@
+table:
+  name: genesis_staker_airdrops
+  schema: public
+object_relationships:
+  - name: airdrop_round_info
+    using:
+      foreign_key_constraint_on: airdrop_round
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - staker_id
+        - airdrop_round
+        - usd_value
+        - reward_amount
+        - is_distributed
+        - distributed_at
+      filter: {}
+      limit: 100
