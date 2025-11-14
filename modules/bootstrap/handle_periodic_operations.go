@@ -25,6 +25,7 @@ import (
 	operatorkeeper "github.com/imua-xyz/imuachain/x/operator/keeper"
 	aggregatorv3 "github.com/imua-xyz/price-feeder/fetcher/chainlink/aggregatorv3"
 	"github.com/rs/zerolog/log"
+	"github.com/xrpscan/xrpl-go"
 )
 
 func (m *Module) RegisterPeriodicOperations(scheduler *gocron.Scheduler) error {
@@ -32,25 +33,33 @@ func (m *Module) RegisterPeriodicOperations(scheduler *gocron.Scheduler) error {
 
 	// Schedule a cron job to run.
 	if _, err := scheduler.Every(m.Config.ETHUpdateInterval).Minutes().WaitForSchedule().Do(func() {
-		m.refetchETHStates()
+		if err := m.refetchETHStates(); err != nil {
+			log.Error().Err(err).Str("module", "bootstrap").Msg("failed to refetch ETH states")
+		}
 	}); err != nil {
 		return fmt.Errorf("failed to set up the periodic ETH states refetch operation: %s", err)
 	}
 
 	if _, err := scheduler.Every(m.Config.BTCUpdateInterval).Minutes().Do(func() {
-		m.refetchBTCStates()
+		if err := m.refetchBTCStates(); err != nil {
+			log.Error().Err(err).Str("module", "bootstrap").Msg("failed to refetch BTC states")
+		}
 	}); err != nil {
 		return fmt.Errorf("failed to set up the periodic BTC states refetch operation: %s", err)
 	}
 
 	if _, err := scheduler.Every(m.Config.XRPUpdateInterval).Minutes().Do(func() {
-		m.refetchXRPStates()
+		if err := m.refetchXRPStates(); err != nil {
+			log.Error().Err(err).Str("module", "bootstrap").Msg("failed to refetch XRP states")
+		}
 	}); err != nil {
 		return fmt.Errorf("failed to set up the periodic XRP states refetch operation: %s", err)
 	}
 
 	if _, err := scheduler.Every(m.Config.PriceUpdateInterval).Minutes().WaitForSchedule().Do(func() {
-		m.updatePricesAndTVL()
+		if err := m.updatePricesAndTVL(); err != nil {
+			log.Error().Err(err).Str("module", "bootstrap").Msg("failed to update prices and TVL")
+		}
 	}); err != nil {
 		return fmt.Errorf("failed to set up the periodic prices update operation: %s", err)
 	}
@@ -1296,6 +1305,14 @@ func (m *Module) refetchXRPStates() error {
 	log.Debug().Str("module", "bootstrap").Str("refetching", "XRP states").
 		Msg("refetching XRP states")
 
+	// Pre-flight XRP connection health check to avoid first request failure
+	if err := m.XrpClient.Ping([]byte("PING")); err != nil {
+		log.Warn().Str("module", "bootstrap").Err(err).Msg("XRP ping failed, attempting reconnect")
+		if recErr := m.recreateXRPClient(); recErr != nil {
+			return fmt.Errorf("failed to reconnect XRP client after ping failure: %w", recErr)
+		}
+	}
+
 	// Get current ledger index
 	currentLedger, err := m.getXRPCurrentLedger()
 	if err != nil {
@@ -1402,9 +1419,8 @@ func (m *Module) getXRPCurrentLedger() (int64, error) {
 
 	log.Debug().Str("module", "bootstrap").Interface("request", request).Msg("sending XRP ledger request")
 
-	response, err := m.XrpClient.Request(request)
+	response, err := m.xrpRequestWithReconnect(request)
 	if err != nil {
-		log.Error().Err(err).Str("module", "bootstrap").Msg("XRP client request failed")
 		return 0, fmt.Errorf("failed to request current ledger: %w", err)
 	}
 
@@ -1462,6 +1478,38 @@ func (m *Module) getXRPCurrentLedger() (int64, error) {
 	default:
 		return 0, fmt.Errorf("invalid ledger_index type: %T", v)
 	}
+}
+
+// xrpRequestWithReconnect performs an XRPL request and, on failure, attempts a single reconnect then retries once.
+func (m *Module) xrpRequestWithReconnect(request map[string]interface{}) (map[string]interface{}, error) {
+	response, err := m.XrpClient.Request(request)
+	if err == nil {
+		return response, nil
+	}
+
+	log.Error().Err(err).Str("module", "bootstrap").Msg("XRP request failed, attempting reconnect")
+	if recErr := m.recreateXRPClient(); recErr != nil {
+		return nil, fmt.Errorf("xrp request failed and reconnect failed: %w", err)
+	}
+	log.Warn().Str("module", "bootstrap").Msg("retrying XRP request after reconnect")
+	response, err = m.XrpClient.Request(request)
+	if err != nil {
+		return nil, fmt.Errorf("xrp request failed after reconnect: %w", err)
+	}
+	return response, nil
+}
+
+// recreateXRPClient rebuilds the XRP client connection and verifies connectivity
+func (m *Module) recreateXRPClient() error {
+	log.Warn().Str("module", "bootstrap").Msg("recreating XRP client due to connection issue")
+	client := xrpl.NewClient(xrpl.ClientConfig{URL: m.Config.XRPRPC})
+	if err := client.Ping([]byte("PING")); err != nil {
+		log.Error().Err(err).Str("module", "bootstrap").Msg("failed to ping XRPL after recreating client")
+		return err
+	}
+	m.XrpClient = client
+	log.Info().Str("module", "bootstrap").Msg("successfully reconnected XRP client")
+	return nil
 }
 
 // parseXRPTransactionFromAccountTx safely parses XRP transaction data from account_tx response
@@ -1900,7 +1948,7 @@ func (m *Module) getXRPVaultTransactionsFromLedger(fromLedger, toLedger int64) (
 
 		log.Debug().Interface("request", request).Msg("sending account_tx request")
 
-		response, err := m.XrpClient.Request(request)
+		response, err := m.xrpRequestWithReconnect(request)
 		if err != nil {
 			return nil, fmt.Errorf("failed to request account transactions: %w", err)
 		}
