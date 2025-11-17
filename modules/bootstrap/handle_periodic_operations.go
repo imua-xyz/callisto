@@ -1419,16 +1419,14 @@ func (m *Module) getXRPCurrentLedger() (int64, error) {
 
 	log.Debug().Str("module", "bootstrap").Interface("request", request).Msg("sending XRP ledger request")
 
-	response, err := m.xrpRequestWithReconnect(request)
+	responseMap, err := m.xrpRequestWithReconnect(request)
 	if err != nil {
 		return 0, fmt.Errorf("failed to request current ledger: %w", err)
 	}
 
-	log.Debug().Str("module", "bootstrap").Interface("response", response).Msg("received XRP ledger response")
+	log.Debug().Str("module", "bootstrap").Interface("response", responseMap).Msg("received XRP ledger response")
 
 	// Parse response to extract ledger index
-	responseMap := map[string]interface{}(response)
-
 	result, ok := responseMap["result"].(map[string]interface{})
 	if !ok {
 		return 0, fmt.Errorf("invalid response result format")
@@ -1948,13 +1946,12 @@ func (m *Module) getXRPVaultTransactionsFromLedger(fromLedger, toLedger int64) (
 
 		log.Debug().Interface("request", request).Msg("sending account_tx request")
 
-		response, err := m.xrpRequestWithReconnect(request)
+		responseMap, err := m.xrpRequestWithReconnect(request)
 		if err != nil {
 			return nil, fmt.Errorf("failed to request account transactions: %w", err)
 		}
 
 		// Parse response
-		responseMap := map[string]interface{}(response)
 		result, ok := responseMap["result"].(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid response result format")
