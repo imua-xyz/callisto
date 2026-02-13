@@ -1,26 +1,26 @@
 chain:
   bech32_prefix: im
   modules:
-    - "message_type"
-    - "messages"
-    - "telemetry"
-    - "pruning"
-    - "actions"
-    - "consensus"
-    - "daily refetch"
-    - "modules"
-    - "auth"
-    - "bank"
-    - "feegrant"
-    - "epochs"
-    - "immint"
-    - "assets"
-    - "avs"
-    - "operator"
-    - "delegation"
-    - "dogfood"
-    - "oracle"
-    - "slashing"
+    - 'message_type'
+    - 'messages'
+    - 'telemetry'
+    - 'pruning'
+    - 'actions'
+    - 'consensus'
+    - 'daily refetch'
+    - 'modules'
+    - 'auth'
+    - 'bank'
+    - 'feegrant'
+    - 'epochs'
+    - 'immint'
+    - 'assets'
+    - 'avs'
+    - 'operator'
+    - 'delegation'
+    - 'dogfood'
+    - 'oracle'
+    - 'slashing'
 
 telemetry:
   port: 26658
@@ -31,18 +31,42 @@ pruning:
   interval: 5000
 
 dogfood:
-  chain_id_without_revision: "imuachaintestnet_233"
+  chain_id_without_revision: 'imuachaintestnet_233'
+
+bootstrap:
+  eth_http: ''
+  eth_websocket: ''
+  btc_rpc: 'http://35.175.192.126:8084/testnet'
+  xrp_rpc: 'https://s.altnet.rippletest.net:51233/'
+  bootstrap_addr: '0x53f39D2ECd900Fb018180dB692A9fc29c8efD38E'
+  btc_update_interval: 6
+  xrp_update_interval: 1
+  eth_lz_chain_id: 40217
+  # BTC configuration
+  btc_vault_addr: 'tb1q3w7ar6cxdc7j3g8dunqdve589l0t4383pp8efk'
+  btc_min_confirmations: 6
+  btc_min_amount: 10000
+  # XRP configuration
+  xrp_vault_addr: 'rEZgFxT3LbJyhEWrFgf3zUNdv3zCt4KUBJ'
+  xrp_min_confirmations: 6
+  xrp_min_amount: 10000000
+  xrp_destination_tag: 9999
+  # Incremental scanning configuration
+  btc_start_height: 0
+  xrp_start_ledger: 0
+  scan_batch_size: 100
+  reorg_depth: 6
 
 node:
   type: remote
   config:
     rpc:
       client_name: imuad
-      address: "http://localhost:26657"
+      address: 'https://api-cosmos-grpc.exocore-restaking.com:443'
       max_connections: 20
     grpc:
-      address: "localhost:9090"
-      insecure: true
+      address: 'api-cosmos-grpc.exocore-restaking.com:443' # 使用同一个端点，可能支持 gRPC
+      insecure: false
 
 parsing:
   workers: 1
@@ -53,16 +77,16 @@ parsing:
   parse_genesis: true
 
 database:
-  url: "postgresql://user:password@localhost:5432/db_name?sslmode=disable&search_path=public"
+  url: 'postgresql://user:password@localhost:5432/db_name?sslmode=disable&search_path=public'
   max_open_connections: 10
   max_idle_connections: 10
   partition_size: 100000
   partition_batch_size: 1000
 
 logging:
-  level: "debug"
-  format: "text"
+  level: 'debug'
+  format: 'text'
 
 actions:
-  host: "callisto"
+  host: '0.0.0.0'
   port: 3000

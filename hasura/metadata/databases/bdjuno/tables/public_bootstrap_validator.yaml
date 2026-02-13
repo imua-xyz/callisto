@@ -1,0 +1,34 @@
+table:
+  name: bootstrap_validator
+  schema: public
+
+array_relationships:
+  - name: delegation_states
+    using:
+      foreign_key_constraint_on:
+        column: operator_addr
+        table:
+          name: bootstrap_delegation_states
+          schema: public
+  - name: operator_assets
+    using:
+      foreign_key_constraint_on:
+        column: operator_addr
+        table:
+          name: bootstrap_operator_assets
+          schema: public
+
+select_permissions:
+  - permission:
+      columns:
+        - validator_eth_addr
+        - validator_im_addr
+        - validator_name
+        - consensus_pub_key
+        - commission_rate
+        - max_commission_rate
+        - max_change_rate
+        - updated_at
+      filter: {}
+      limit: 200
+    role: anonymous

@@ -1,0 +1,88 @@
+chain:
+  bech32_prefix: im
+  modules:
+    - "telemetry"
+    - "bootstrap"
+
+telemetry:
+  port: 26658
+
+pruning:
+  keep_recent: 200000
+  keep_every: 10000
+  interval: 5000
+
+bootstrap:
+  eth_http: 'https://rpc.hoodi.ethpandaops.io'
+  eth_websocket: 'wss://0xrpc.io/hoodi'
+  feeder_eth_http: 'https://ethereum-rpc.publicnode.com'
+  bootstrap_addr: "0xf21FB1667A8Aa3D3ea365D3D1D257f3E4fdd0651"
+  eth_lz_chain_id: 40217
+
+  # Incremental scanning configuration
+  scan_batch_size: 100
+  reorg_depth: 6
+
+  eth_update_interval: 1440
+
+  # BTC Configuration
+  btc_rpc: 'http://35.175.192.126:8084/testnet'
+  btc_vault_addr: 'tb1q3w7ar6cxdc7j3g8dunqdve589l0t4383pp8efk'
+  btc_min_confirmations: 6
+  btc_min_amount: 1000 # 0.00001 BTC in satoshis
+  btc_start_height: 100000
+  btc_update_interval: 6
+
+  # XRP Configuration
+  xrp_rpc: 'wss://s.altnet.rippletest.net:51233'
+  xrp_vault_addr: 'rEZgFxT3LbJyhEWrFgf3zUNdv3zCt4KUBJ'
+  xrp_min_confirmations: 6
+  xrp_min_amount: 10000000 # 10 XRP in drops
+  xrp_destination_tag: 9999
+  xrp_start_ledger: 877578
+  xrp_update_interval: 3
+
+  #Token Configuration
+  price_update_interval: 60
+
+  client_chain_infos:
+    - name: "Hoodi"
+      meta_info: "Ethereum-testnet known as Hoodi"
+      lz_chain_id: 40217
+    - name: "Bitcoin"
+      meta_info: "Bitcoin mainnet"
+      lz_chain_id: 1
+    - name: "XRP Ledger"
+      meta_info: "XRP Ledger mainnet"
+      lz_chain_id: 2
+  staking_token_infos:
+    - asset_id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_0x1"
+      name: "Bitcoin"
+      symbol: "BTC"
+      address: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      decimals: 8
+      lz_chain_id: 1
+    - asset_id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb_0x2"
+      name: "XRP"
+      symbol: "XRP"
+      address: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      decimals: 6
+      lz_chain_id: 2
+  token_oracle_feeds:
+    - asset_id: ""
+      oracle_addr: ""
+
+database:
+  url: "postgresql://user:password@localhost:5432/db_name?sslmode=disable&search_path=public"
+  max_open_connections: 10
+  max_idle_connections: 10
+  partition_size: 100000
+  partition_batch_size: 1000
+
+logging:
+  level: "debug"
+  format: "text"
+
+actions:
+  host: "callisto"
+  port: 3000

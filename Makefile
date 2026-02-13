@@ -14,7 +14,8 @@ all: lint build test-unit
 ###############################################################################
 
 export CGO_ENABLED = 1
-export CGO_CFLAGS = -std=gnu11
+# ?= so Docker/CI can set CGO_CFLAGS (e.g. -D__BLST_PORTABLE__) without being overwritten
+export CGO_CFLAGS ?= -std=gnu11
 
 LD_FLAGS = -X github.com/forbole/juno/v5/cmd.Version=$(VERSION) \
 	-X github.com/forbole/juno/v5/cmd.Commit=$(COMMIT)

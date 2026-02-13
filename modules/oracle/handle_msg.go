@@ -22,8 +22,7 @@ func (m *Module) HandleMsgExec(index int, _ *authz.MsgExec, _ int, executedMsg s
 
 // HandleMsg implements MessageModule
 func (m *Module) HandleMsg(_ int, msg sdk.Msg, tx *juno.Tx) error {
-	switch msg.(type) {
-	case *oracletypes.MsgCreatePrice:
+	if _, ok := msg.(*oracletypes.MsgCreatePrice); ok {
 		return m.handlePriceEvents(tx)
 	}
 	// we do not handle MsgUpdateParams because it is handled in HandleBlock

@@ -4,6 +4,7 @@ import (
 	"github.com/forbole/callisto/v4/modules/actions"
 	"github.com/forbole/callisto/v4/modules/assets"
 	"github.com/forbole/callisto/v4/modules/avs"
+	"github.com/forbole/callisto/v4/modules/bootstrap"
 	"github.com/forbole/callisto/v4/modules/delegation"
 	"github.com/forbole/callisto/v4/modules/dogfood"
 	"github.com/forbole/callisto/v4/modules/epochs"
@@ -71,6 +72,16 @@ func (r *Registrar) BuildModules(ctx registrar.Context) jmodules.Modules {
 	cdc := ctx.EncodingConfig.Codec
 	db := database.Cast(ctx.Database)
 
+	// check whether it's used for bootstrap
+	for _, module := range ctx.JunoConfig.Chain.Modules {
+		if module == "bootstrap" {
+			return []jmodules.Module{
+				// exposes prometheus metrics, at node start.
+				telemetry.NewModule(ctx.JunoConfig),
+				bootstrap.NewModule(ctx.JunoConfig, db),
+			}
+		}
+	}
 	// we should modify the sources later.
 	sources, err := types.BuildSources(ctx.JunoConfig.Node, ctx.EncodingConfig)
 	if err != nil {

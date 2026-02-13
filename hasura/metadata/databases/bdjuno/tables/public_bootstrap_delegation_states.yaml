@@ -1,0 +1,15 @@
+table:
+  name: bootstrap_delegation_states
+  schema: public
+select_permissions:
+  - permission:
+      columns:
+        - staker_id
+        - asset_id
+        - operator_addr
+        - delegated
+        - updated_at
+        - updated_at_block
+      filter: {}
+      limit: 1000
+    role: anonymous

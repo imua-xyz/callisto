@@ -1,0 +1,3 @@
+function:
+  name: get_active_staker_count
+  schema: public

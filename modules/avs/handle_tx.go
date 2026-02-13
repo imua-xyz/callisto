@@ -46,7 +46,7 @@ func (m *Module) handleChainAvsCreatedEvents(events []abci.Event) error {
 		if err != nil {
 			return fmt.Errorf("error while getting avs address: %s", err)
 		}
-		if err := m.db.SaveChainIdToAvsAddr(chainID.Value, avsAddress.Value); err != nil {
+		if err := m.db.SaveChainIDToAvsAddr(chainID.Value, avsAddress.Value); err != nil {
 			return fmt.Errorf("error while saving chain id to avs address: %s", err)
 		}
 	}

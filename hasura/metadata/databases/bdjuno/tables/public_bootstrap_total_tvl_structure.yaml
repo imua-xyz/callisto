@@ -1,0 +1,11 @@
+table:
+  name: total_tvl_structure
+  schema: public
+
+select_permissions:
+  - permission:
+      columns:
+        - total
+      filter: {}
+      limit: 1
+    role: anonymous

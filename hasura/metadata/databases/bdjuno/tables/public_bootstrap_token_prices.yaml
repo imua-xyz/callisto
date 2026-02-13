@@ -1,0 +1,12 @@
+table:
+  name: bootstrap_token_prices
+  schema: public
+select_permissions:
+  - permission:
+      columns:
+        - asset_id
+        - price
+        - updated_at
+      filter: {}
+      limit: 20
+    role: anonymous

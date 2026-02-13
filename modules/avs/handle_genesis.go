@@ -24,7 +24,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	if err := m.db.SaveAvsAddr(avsAddr); err != nil {
 		return fmt.Errorf("error while saving avs address: %s", err)
 	}
-	if err := m.db.SaveChainIdToAvsAddr(chainID, avsAddr); err != nil {
+	if err := m.db.SaveChainIDToAvsAddr(chainID, avsAddr); err != nil {
 		return fmt.Errorf("error while saving chain id to avs address: %s", err)
 	}
 
@@ -43,7 +43,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	}
 	for _, elem := range state.ChainIdInfos {
 		elem.AvsAddress = strings.ToLower(elem.AvsAddress)
-		if err := m.db.SaveChainIdToAvsAddr(elem.ChainId, elem.AvsAddress); err != nil {
+		if err := m.db.SaveChainIDToAvsAddr(elem.ChainId, elem.AvsAddress); err != nil {
 			return fmt.Errorf("error while saving chain id to avs address: %s", err)
 		}
 	}

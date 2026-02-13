@@ -1,0 +1,3 @@
+function:
+  name: get_max_usd_value_token
+  schema: public

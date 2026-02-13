@@ -36,7 +36,7 @@ func NewDelegationStateFromStr(
 // `delegationtypes.DelegationAmounts` format.
 func NewDelegationState(
 	stakerID, assetID, operatorAddr string,
-	delegationAmounts *delegationtypes.DelegationAmounts,
+	delegationAmounts delegationtypes.DelegationAmounts,
 ) *DelegationState {
 	return NewDelegationStateFromStr(
 		stakerID, assetID, operatorAddr,

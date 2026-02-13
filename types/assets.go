@@ -109,7 +109,7 @@ func NewOperatorAssetFromStr(
 type ClientChain struct {
 	Name               string
 	MetaInfo           string
-	ChainId            string
+	ChainID            string
 	ImuaChainIndex     string
 	FinalizationBlocks string
 	LayerZeroChainID   string
@@ -122,7 +122,7 @@ func NewClientChain(info assetstypes.ClientChainInfo) *ClientChain {
 	return &ClientChain{
 		Name:               info.Name,
 		MetaInfo:           info.MetaInfo,
-		ChainId:            fmt.Sprintf("%d", info.ChainId),
+		ChainID:            fmt.Sprintf("%d", info.ChainId),
 		ImuaChainIndex:     fmt.Sprintf("%d", info.ImuaChainIndex),
 		FinalizationBlocks: fmt.Sprintf("%d", info.FinalizationBlocks),
 		LayerZeroChainID:   fmt.Sprintf("%d", info.LayerZeroChainID),
@@ -134,14 +134,14 @@ func NewClientChain(info assetstypes.ClientChainInfo) *ClientChain {
 // NewClientChainFromStr creates a new ClientChain instance from the given
 // string versions of the fields.
 func NewClientChainFromStr(
-	name string, metaInfo string, chainId string, imuachainIndex string,
+	name string, metaInfo string, chainID string, imuachainIndex string,
 	finalizationBlocks string, layerZeroChainID string, signatureType string,
 	addressLength string,
 ) *ClientChain {
 	return &ClientChain{
 		Name:               name,
 		MetaInfo:           metaInfo,
-		ChainId:            chainId,
+		ChainID:            chainID,
 		ImuaChainIndex:     imuachainIndex,
 		FinalizationBlocks: finalizationBlocks,
 		LayerZeroChainID:   layerZeroChainID,
@@ -165,7 +165,7 @@ type AssetsToken struct {
 }
 
 // NewAssetsToken creates a new AssetsToken instance from the given assetstypes.StakingAssetInfo
-func NewAssetsToken(info *assetstypes.StakingAssetInfo) *AssetsToken {
+func NewAssetsToken(info assetstypes.StakingAssetInfo) *AssetsToken {
 	basic := info.AssetBasicInfo
 	return &AssetsToken{
 		AssetID:          basic.AssetID(),

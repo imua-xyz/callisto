@@ -1,0 +1,14 @@
+table:
+  name: max_usd_value_token_structure
+  schema: public
+select_permissions:
+- permission:
+    columns:
+    - asset_id
+    - name
+    - symbol
+    - total_usd_value
+    - staking_total_amount
+    filter: {}
+    limit: 1
+  role: anonymous

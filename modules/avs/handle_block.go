@@ -39,7 +39,7 @@ func (m *Module) handleDogfoodAvsCreationEvents(events []abci.Event) error {
 			return fmt.Errorf("error while saving avs address: %s", err)
 		}
 		// and that it was a chain avs
-		if err := m.db.SaveChainIdToAvsAddr(chainID.Value, avsAddress.Value); err != nil {
+		if err := m.db.SaveChainIDToAvsAddr(chainID.Value, avsAddress.Value); err != nil {
 			return fmt.Errorf("error while saving chain id to avs address: %s", err)
 		}
 	}

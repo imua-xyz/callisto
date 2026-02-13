@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"github.com/forbole/callisto/v4/cmd/parse/bootstrap"
 	parse "github.com/forbole/juno/v5/cmd/parse/types"
 	"github.com/spf13/cobra"
 
@@ -32,6 +33,7 @@ func NewParseCmd(parseCfg *parse.Config) *cobra.Command {
 		parsegenesis.NewGenesisCmd(parseCfg),
 		parsepricefeed.NewPricefeedCmd(parseCfg),
 		parsetransaction.NewTransactionsCmd(parseCfg),
+		bootstrap.NewBootstrapCmd(parseCfg),
 	)
 
 	return cmd

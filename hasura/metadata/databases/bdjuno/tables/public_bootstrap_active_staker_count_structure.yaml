@@ -1,0 +1,11 @@
+table:
+  name: active_staker_count_structure
+  schema: public
+
+select_permissions:
+  - permission:
+      columns:
+        - count
+      filter: {}
+      limit: 1
+    role: anonymous

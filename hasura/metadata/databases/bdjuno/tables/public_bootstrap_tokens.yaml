@@ -1,0 +1,54 @@
+table:
+  name: bootstrap_tokens
+  schema: public
+
+object_relationships:
+  - name: client_chain
+    using:
+      foreign_key_constraint_on: layer_zero_chain_id
+
+array_relationships:
+  - name: token_prices
+    using:
+      foreign_key_constraint_on:
+        column: asset_id
+        table:
+          name: bootstrap_token_prices
+          schema: public
+  - name: staker_assets
+    using:
+      foreign_key_constraint_on:
+        column: asset_id
+        table:
+          name: bootstrap_staker_assets
+          schema: public
+  - name: operator_assets
+    using:
+      foreign_key_constraint_on:
+        column: asset_id
+        table:
+          name: bootstrap_operator_assets
+          schema: public
+  - name: delegation_states
+    using:
+      foreign_key_constraint_on:
+        column: asset_id
+        table:
+          name: bootstrap_delegation_states
+          schema: public
+
+select_permissions:
+  - permission:
+      columns:
+        - asset_id
+        - name
+        - symbol
+        - address
+        - decimals
+        - layer_zero_chain_id
+        - staking_total_amount
+        - total_usd_value
+        - updated_at
+      filter: {}
+      limit: 20
+    role: anonymous

@@ -37,7 +37,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 		if err != nil {
 			return fmt.Errorf("error while parsing delegation state key: %s", err)
 		}
-		wrappedState := types.NewDelegationState(keys.StakerId, keys.AssetId, keys.OperatorAddr, &state.States)
+		wrappedState := types.NewDelegationState(keys.StakerId, keys.AssetId, keys.OperatorAddr, state.States)
 		if err := m.db.SaveDelegationState(wrappedState); err != nil {
 			return fmt.Errorf("error while saving delegation state: %s", err)
 		}

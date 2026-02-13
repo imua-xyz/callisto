@@ -62,7 +62,7 @@ func (m *Module) handleClientChainEventsByType(events []abci.Event, ty string) e
 		if err != nil {
 			return fmt.Errorf("error while getting client chain meta info: %s", err)
 		}
-		chainId, err := juno.FindAttributeByKey(event, assetstypes.AttributeKeyChainID)
+		chainID, err := juno.FindAttributeByKey(event, assetstypes.AttributeKeyChainID)
 		if err != nil {
 			return fmt.Errorf("error while getting client chain ID: %s", err)
 		}
@@ -87,7 +87,7 @@ func (m *Module) handleClientChainEventsByType(events []abci.Event, ty string) e
 			return fmt.Errorf("error while getting address length: %s", err)
 		}
 		chain := types.NewClientChainFromStr(
-			name.Value, metaInfo.Value, chainId.Value,
+			name.Value, metaInfo.Value, chainID.Value,
 			imuachainIndex.Value, finalizationBlocks.Value,
 			lzID.Value, sigType.Value, addrLength.Value,
 		)
@@ -190,7 +190,7 @@ func (m *Module) handleUpdateStakingTotalAmount(events []abci.Event) error {
 }
 
 // handleStakerEvents filters, parses and indexes the staker events.
-func (m *Module) handleStakerEvents(height int64, events []abci.Event) error {
+func (m *Module) handleStakerEvents(_ int64, events []abci.Event) error {
 	events = juno.FindEventsByType(events, assetstypes.EventTypeUpdatedStakerAsset)
 	for _, event := range events {
 		stakerID, err := juno.FindAttributeByKey(event, assetstypes.AttributeKeyStakerID)
@@ -225,7 +225,7 @@ func (m *Module) handleStakerEvents(height int64, events []abci.Event) error {
 }
 
 // handleOperatorEvents filters, parses and indexes the operator events.
-func (m *Module) handleOperatorEvents(height int64, events []abci.Event) error {
+func (m *Module) handleOperatorEvents(_ int64, events []abci.Event) error {
 	events = juno.FindEventsByType(events, assetstypes.EventTypeUpdatedOperatorAsset)
 	for _, event := range events {
 		operatorAddr, err := juno.FindAttributeByKey(event, assetstypes.AttributeKeyOperatorAddress)

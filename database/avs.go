@@ -16,8 +16,8 @@ ON CONFLICT (avs_addr) DO NOTHING;`
 	return nil
 }
 
-// SaveChainIdToAvsAddr saves the given chain id to avs address mapping into the database.
-func (db *Db) SaveChainIdToAvsAddr(chainID, avsAddr string) error {
+// SaveChainIDToAvsAddr saves the given chain id to avs address mapping into the database.
+func (db *Db) SaveChainIDToAvsAddr(chainID, avsAddr string) error {
 	stmt := `
 INSERT INTO chain_id_to_avs_addr (chain_id, avs_addr)
 VALUES ($1, $2)

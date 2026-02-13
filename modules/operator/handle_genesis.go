@@ -26,7 +26,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 	// genesis state is made up of:
 	// - operator
 	for _, operatorDetail := range genState.Operators {
-		if err := m.db.SaveOperatorDetail(types.NewOperator(&operatorDetail.OperatorInfo)); err != nil {
+		if err := m.db.SaveOperatorDetail(types.NewOperator(operatorDetail.OperatorInfo)); err != nil {
 			return fmt.Errorf("error while saving operator detail: %s", err)
 		}
 	}
@@ -58,7 +58,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 		}
 		operatorAddr, avsAddr := keys[0], keys[1]
 		opted := types.NewOpted(
-			operatorAddr, avsAddr, &data.OptInfo,
+			operatorAddr, avsAddr, data.OptInfo,
 		)
 		if err := m.db.SaveOptedState(opted); err != nil {
 			return fmt.Errorf("error while saving operator opt state: %s", err)
@@ -73,7 +73,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 		avsAddr, operatorAddr := parsed[0], parsed[1]
 		operatorUSDValue := types.NewOperatorUSDValue(
 			operatorAddr, avsAddr,
-			&usdValue.OptedUSDValue,
+			usdValue.OptedUSDValue,
 		)
 		if err := m.db.SaveOperatorUSDValue(operatorUSDValue); err != nil {
 			return fmt.Errorf("error while saving operator usd value: %s", err)
@@ -99,10 +99,10 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 		if err != nil {
 			return fmt.Errorf("error while parsing prev cons key: %s", err)
 		}
-		chainId, operatorAddr := parsed[0], parsed[1]
+		chainID, operatorAddr := parsed[0], parsed[1]
 		wrappedKey := keytypes.NewWrappedConsKeyFromHex(prev.ConsensusKey)
 		if err := m.db.SaveOperatorPrevConsKey(
-			chainId, operatorAddr, wrappedKey.ToHex(), wrappedKey.ToConsAddr().String(),
+			chainID, operatorAddr, wrappedKey.ToHex(), wrappedKey.ToConsAddr().String(),
 		); err != nil {
 			return fmt.Errorf("error while saving prev cons key: %s", err)
 		}
@@ -114,11 +114,11 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 			return fmt.Errorf("error while parsing operator key removal: %s", err)
 		}
 		// NOTE the reversed order
-		operatorAddr, chainId := parsed[0], parsed[1]
-		if err := m.db.MarkOperatorKeyRemoval(chainId, operatorAddr); err != nil {
+		operatorAddr, chainID := parsed[0], parsed[1]
+		if err := m.db.MarkOperatorKeyRemoval(chainID, operatorAddr); err != nil {
 			return fmt.Errorf("error while removing operator cons key: %s", err)
 		}
-		if err := m.db.SetConsensusKeyRemovalRequested(chainId, operatorAddr, doc.InitialHeight); err != nil {
+		if err := m.db.SetConsensusKeyRemovalRequested(chainID, operatorAddr, doc.InitialHeight); err != nil {
 			return fmt.Errorf("error while setting consensus key removal requested: %s", err)
 		}
 	}

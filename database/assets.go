@@ -50,7 +50,7 @@ ON CONFLICT (layer_zero_chain_id) DO UPDATE
 	_, err := db.SQL.Exec(stmt,
 		chain.Name,
 		chain.MetaInfo,
-		chain.ChainId,
+		chain.ChainID,
 		chain.ImuaChainIndex,
 		chain.FinalizationBlocks,
 		chain.LayerZeroChainID,

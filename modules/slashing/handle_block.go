@@ -49,7 +49,7 @@ func (m *Module) handleUptime(block *types.Block) error {
 	}
 	effectiveHeight := block.Height - 1
 	// int32 <= int across all platforms
-	size := int32(commit.Size())
+	size := int32(commit.Size()) // #nosec G115
 	for i := int32(0); i < size; i++ {
 		// iterate only through validators who should have signed
 		vote := commit.GetVote(i)

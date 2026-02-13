@@ -48,7 +48,7 @@ func (m *Module) HandleGenesis(doc *tmtypes.GenesisDoc, appState map[string]json
 
 	// Save the genesis tokens
 	for _, token := range genState.Tokens {
-		err = m.db.SaveAssetsToken(types.NewAssetsToken(&token))
+		err = m.db.SaveAssetsToken(types.NewAssetsToken(token))
 		if err != nil {
 			return fmt.Errorf("error while storing genesis token: %s", err)
 		}

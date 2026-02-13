@@ -20,8 +20,7 @@ func (m *Module) HandleMsgExec(index int, _ *authz.MsgExec, _ int, executedMsg s
 
 // HandleMsg implements MessageModule
 func (m *Module) HandleMsg(_ int, msg sdk.Msg, tx *juno.Tx) error {
-	switch cosmosMsg := msg.(type) {
-	case *imminttypes.MsgUpdateParams:
+	if cosmosMsg, ok := msg.(*imminttypes.MsgUpdateParams); ok {
 		return m.handleMsgUpdateParams(tx.Height, cosmosMsg)
 	}
 	return nil

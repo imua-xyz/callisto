@@ -83,7 +83,7 @@ jobs:
         platforms: linux/amd64,linux/arm64
         tags: |
           ghcr.io/imua-xyz/callisto:latest
-          ghcr.io/imua-xyz/callisto:${{ github.ref_name }}
+          ghcr.io/imua-xyz/callisto:${{ github.ref_name//\//- }}
 
     - name: Log in to Docker Hub (or GHCR)
       uses: docker/login-action@v3
@@ -100,4 +100,4 @@ jobs:
         platforms: linux/amd64,linux/arm64
         tags: |
           ghcr.io/imua-xyz/callisto:latest
-          ghcr.io/imua-xyz/callisto:${{ github.ref_name }}
+          ghcr.io/imua-xyz/callisto:${{ github.ref_name//\//- }}

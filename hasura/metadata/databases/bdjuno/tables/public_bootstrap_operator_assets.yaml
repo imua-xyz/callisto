@@ -1,0 +1,15 @@
+table:
+  name: bootstrap_operator_assets
+  schema: public
+select_permissions:
+  - permission:
+      columns:
+        - operator_addr
+        - asset_id
+        - total_amount
+        - self_amount
+        - other_amount
+        - updated_at
+      filter: {}
+      limit: 1000
+    role: anonymous

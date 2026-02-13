@@ -10,7 +10,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	juno "github.com/forbole/juno/v5/types"
-	junotypes "github.com/forbole/juno/v5/types"
 	keytypes "github.com/imua-xyz/imuachain/types/keys"
 	dogfoodtypes "github.com/imua-xyz/imuachain/x/dogfood/types"
 
@@ -58,7 +57,9 @@ func (m *Module) handleLastTotalPowerUpdated(events []abci.Event) error {
 	events = juno.FindEventsByType(events, dogfoodtypes.EventTypeLastTotalPowerUpdated)
 	for _, event := range events {
 		// there is only one attribute
-		m.db.SaveLastTotalPower(event.Attributes[0].Value)
+		if err := m.db.SaveLastTotalPower(event.Attributes[0].Value); err != nil {
+			return fmt.Errorf("error while saving total voting power: %s", err)
+		}
 	}
 	return nil
 }
@@ -109,7 +110,7 @@ func (m *Module) handleValidatorSetChange(height int64, events []abci.Event) err
 		if wrappedKey == nil {
 			return fmt.Errorf("error while getting wrapped consensus key")
 		}
-		consPubKey, err := junotypes.ConvertValidatorPubKeyToBech32String(wrappedKey.ToTmKey())
+		consPubKey, err := juno.ConvertValidatorPubKeyToBech32String(wrappedKey.ToTmKey())
 		if err != nil {
 			return fmt.Errorf("error while converting validator pubkey to bech32 string: %s", err)
 		}

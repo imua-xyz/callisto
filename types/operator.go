@@ -23,7 +23,7 @@ type Operator struct {
 }
 
 // NewOperator converts an operatortypes.OperatorInfo into a Operator
-func NewOperator(t *types.OperatorInfo) *Operator {
+func NewOperator(t types.OperatorInfo) *Operator {
 	return &Operator{
 		EarningsAddress:      t.EarningsAddr,
 		ApproveAddress:       t.ApproveAddr,
@@ -62,7 +62,7 @@ type Opted struct {
 
 // NewOpted converts an operatortypes.OptedInfo into a Opted
 func NewOpted(
-	operatorAddress string, avsAddress string, t *types.OptedInfo,
+	operatorAddress string, avsAddress string, t types.OptedInfo,
 ) *Opted {
 	return &Opted{
 		OperatorAddress: operatorAddress,
@@ -132,7 +132,7 @@ func NewOperatorUSDValueFromStr(
 // NewOperatorUSDValue creates a new OperatorUSDValue instance from the given values
 func NewOperatorUSDValue(
 	operatorAddr string, avsAddr string,
-	operatorUSDValue *types.OperatorOptedUSDValue,
+	operatorUSDValue types.OperatorOptedUSDValue,
 ) *OperatorUSDValue {
 	return &OperatorUSDValue{
 		OperatorAddress: operatorAddr,

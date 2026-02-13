@@ -7,3 +7,6 @@
 - "!include public_messages_by_type.yaml"
 - "!include public_minting_per_block.yaml"
 - "!include public_total_minted.yaml"
+- "!include public_bootstrap_get_active_staker_count.yaml"
+- "!include public_bootstrap_get_max_usd_value_token.yaml"
+- "!include public_bootstrap_get_total_tvl.yaml"

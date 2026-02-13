@@ -1,0 +1,23 @@
+table:
+  name: bootstrap_client_chains
+  schema: public
+
+array_relationships:
+  - name: tokens
+    using:
+      foreign_key_constraint_on:
+        column: layer_zero_chain_id
+        table:
+          name: bootstrap_tokens
+          schema: public
+
+select_permissions:
+  - permission:
+      columns:
+        - name
+        - meta_info
+        - layer_zero_chain_id
+        - updated_at
+      filter: {}
+      limit: 5
+    role: anonymous

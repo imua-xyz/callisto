@@ -1,10 +1,11 @@
 package database_test
 
 import (
+	"context"
+	"github.com/jackc/pgx/v5"
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -74,18 +75,24 @@ func (suite *DbTestSuite) SetupTest() {
 	dirPath := path.Join(".", "schema")
 	dir, err := os.ReadDir(dirPath)
 	suite.Require().NoError(err)
+	ctx := context.Background()
 
+	// 1. Use pgx.Connect() with the URL string
+	conn, err := pgx.Connect(ctx, dbCfg.URL)
+	suite.Require().NoError(err, "Failed to create pgx connection")
 	for _, fileInfo := range dir {
-		file, err := os.ReadFile(filepath.Join(dirPath, fileInfo.Name()))
-		suite.Require().NoError(err)
-
-		commentsRegExp := regexp.MustCompile(`/\*.*\*/`)
-		requests := strings.Split(string(file), ";")
-		for _, request := range requests {
-			_, err := bigDipperDb.SQL.Exec(commentsRegExp.ReplaceAllString(request, ""))
-			suite.Require().NoError(err)
+		if !strings.HasSuffix(fileInfo.Name(), ".sql") {
+			continue
 		}
+		sqlContent, err := os.ReadFile(filepath.Join(dirPath, fileInfo.Name()))
+		suite.Require().NoError(err)
+		// Execute the entire file content as one string.
+		// pgx is smart enough to handle multiple statements separated by ';'
+		// and automatically strips both single-line (--) and multi-line (/*...*/) comments.
+		_, err = conn.Exec(ctx, string(sqlContent))
+		suite.Require().NoError(err)
 	}
+	conn.Close(ctx)
 
 	suite.database = bigDipperDb
 }
@@ -154,7 +161,7 @@ func (suite *DbTestSuite) getValidator(consAddr, valAddr, pubkey string) types.V
 		&maxRate,
 		1,
 	)
-	err := suite.database.SaveValidatorData(validator)
+	err := suite.database.SaveValidatorData(validator, "")
 	suite.Require().NoError(err)
 
 	return validator
